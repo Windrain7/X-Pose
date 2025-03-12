@@ -162,7 +162,7 @@ def plot_on_image(image_pil, tgt, keypoint_skeleton, keypoint_text_prompt, outpu
     boxes = []
     for box in tgt['boxes'].cpu():
         unnormbbox = box * torch.Tensor([W, H, W, H])
-        unnormbbox[:2] -= unnormbbox[2:] / 2
+        unnormbbox[:2] -= unnormbbox[2:] / 2  # cswh to xywh
         [bbox_x, bbox_y, bbox_w, bbox_h] = unnormbbox.tolist()
         boxes.append([bbox_x, bbox_y, bbox_w, bbox_h])
         poly = [[bbox_x, bbox_y], [bbox_x, bbox_y + bbox_h], [bbox_x + bbox_w, bbox_y + bbox_h], [bbox_x + bbox_w, bbox_y]]

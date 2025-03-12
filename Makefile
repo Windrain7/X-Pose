@@ -32,33 +32,54 @@ infer:
 		--iou_threshold 0.6
 
 test:
-# 	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
-# 		-c config_model/UniPose_SwinT.py \
-# 		-p weights/unipose_swint.pth \
-# 		-i data/UniKPT/AP-10K/ap10k-trainval-split1_animal_cnt100.json \
-# 		-d data/UniKPT/AP-10K \
-# 		-t animal \
-# 		-o outputs/ap10k-trainval-split1_animal_cnt100.json \
-# 		--draw
-
-# 	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
-# 		-c config_model/UniPose_SwinT.py \
-# 		-p weights/unipose_swint.pth \
-# 		-i data/UniKPT/CarFusion/car_keypoints_test_cnt100.json \
-# 		-d data/UniKPT/CarFusion \
-# 		-t car \
-# 		-o outputs/car_keypoints_test_cnt100.json \
-# 		--draw
-
-	
 	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
 		-c config_model/UniPose_SwinT.py \
 		-p weights/unipose_swint.pth \
-		-i data/UniKPT/CUB-200-2011/CUB-200-2011_val_bird_cnt100.json \
+		-i data/UniKPT/AP-10K/ap10k-test-split1_animal_cnt2.json \
+		-d data/UniKPT/AP-10K \
+		-t animal \
+		-o outputs/ap10k-test-split1_animal_cnt2.json \
+		
+	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i data/UniKPT/AP-10K/ap10k-test-split1_animal_cnt2.json \
+		-d data/UniKPT/AP-10K \
+		-t animal \
+		-o outputs/ap10k-test-split1_animal_cnt2.json \
+
+	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i data/UniKPT/AP-10K/ap10k-test-split1_animal.json \
+		-d data/UniKPT/AP-10K \
+		-t animal \
+		-o outputs/ap10k-test-split1_animal.json \
+
+
+	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i data/UniKPT/CarFusion/car_keypoints_test.json \
+		-d data/UniKPT/CarFusion \
+		-t car \
+		-o outputs/car_keypoints_test.json \
+
+	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i data/UniKPT/CUB-200-2011/CUB-200-2011_val_bird.json \
 		-d data/UniKPT/CUB-200-2011 \
-		-t fly \
-		-o outputs/CUB-200-2011_val_bird_cnt100.json \
-		--draw
+		-t bird \
+		-o outputs/CUB-200-2011_val_bird.json \
+
+	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i data/UniKPT/COCO/person_keypoints_val2017_hasgt2.json \
+		-d data/UniKPT/COCO \
+		-t bird \
+		-o outputs/person_keypoints_val2017_hasgt2.json \
 
 	
 

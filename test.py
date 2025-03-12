@@ -38,8 +38,9 @@ def pos_process(outputs, box_threshold, iou_threshold, select_min=1):
     # Use keep_indices to filter boxes and keypoints
     filtered_boxes = boxes_filt[keep_indices]
     filtered_keypoints = keypoints_filt[keep_indices]
+    filtered_logits = logits_filt[keep_indices]
 
-    return filtered_boxes, filtered_keypoints
+    return filtered_boxes, filtered_keypoints, filtered_logits
 
 
 if __name__ == '__main__':
@@ -51,8 +52,8 @@ if __name__ == '__main__':
     parser.add_argument('--instance_text_prompt', '-t', type=str, required=True, help='instance text prompt')
     parser.add_argument('--keypoint_text_example', '-k', type=str, default=None, help='keypoint text prompt')
     parser.add_argument('--outfp', '-o', type=str, default='outputs', required=True, help='output file path')
-    parser.add_argument('--box_threshold', type=float, default=0.1, help='box threshold')
-    parser.add_argument('--iou_threshold', type=float, default=0.9, help='box threshold')
+    parser.add_argument('--box_threshold', type=float, default=0.3, help='box threshold')
+    parser.add_argument('--iou_threshold', type=float, default=0.6, help='nms threshold')
     parser.add_argument('--cpu-only', action='store_true', help='running on cpu only!, default=False')
     parser.add_argument('--draw', action='store_true', help='draw keypoints on images, default=False')
     args = parser.parse_args()
@@ -102,9 +103,8 @@ if __name__ == '__main__':
         with torch.no_grad():
             outputs = model(image[None], [target])
 
-        predictions.append(outputs)
-
-        boxes_filt, keypoints_filt = pos_process(outputs, args.box_threshold, args.iou_threshold)
+        boxes_filt, keypoints_filt, scores_filt = pos_process(outputs, args.box_threshold, args.iou_threshold)
+        predictions.append({'image_id': image_info['id'], 'boxes': boxes_filt, 'keypoints': keypoints_filt, 'scores': scores_filt})
 
         if args.draw:
             size = image_pil.size
@@ -116,7 +116,7 @@ if __name__ == '__main__':
 
         # Convert bbox and keypoints to original image size
         W, H = image_pil.size
-        boxes_filt[:, :2] -= boxes_filt[:, 2:] / 2
+        boxes_filt[:, :2] -= boxes_filt[:, 2:] / 2  # cswh to xywh
         boxes_filt *= torch.tensor([W, H, W, H])
         num_keypoints = len(keypoint_text_prompt)
         keypoints_filt = keypoints_filt[..., : 2 * num_keypoints]
@@ -126,13 +126,15 @@ if __name__ == '__main__':
         keypoints_filt = keypoints_filt.reshape(-1, 3 * num_keypoints)
 
         # Prepare annotations
-        for box, keypoints in zip(boxes_filt, keypoints_filt):
+        for box, keypoints, score in zip(boxes_filt, keypoints_filt, scores_filt):
             annotation = {
                 'id': len(annotations),
                 'image_id': image_info['id'],
-                'category_id': coco_data['categories'][0]['id'],  # Assuming single category
+                'category_id': torch.argmax(score).item(),  # score中最大值的下标
+                # 'category_id': coco_data['categories'][0]['id'],  # Assuming single category
                 'bbox': box.tolist(),
                 'keypoints': keypoints.tolist(),
+                'bbox_score': score.max().item(),
             }
             annotations.append(annotation)
 
@@ -141,11 +143,12 @@ if __name__ == '__main__':
 
     os.makedirs(os.path.dirname(outfp), exist_ok=True)
     with open(outfp, 'w') as f:
-        json.dump(results, f)
+        json.dump(results, f, indent=4)
         print(f'Saved results to {outfp}')
 
-    name = outfp.split('/')[-1].split('.')[0]
+    ext = os.path.splitext(outfp)[1]
+    pklname = outfp.replace(f'{ext}', '_predictions.pkl')
     # 将predictions保存为pickle文件
-    with open(f'{name}_predictions.pkl', 'wb') as f:
+    with open(pklname, 'wb') as f:
         pickle.dump(predictions, f)
-        print(f'Saved predictions to {name}_predictions.pkl')
+        print(f'Saved predictions to {pklname}_predictions.pkl')
