@@ -1,0 +1,9 @@
+**.pyc
+weights
+outputs
+inputs
+*.png
+*.jpg
+data
+*.o
+models/UniPose/ops/**

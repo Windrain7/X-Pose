@@ -9,27 +9,32 @@
 import copy
 import math
 import os
+import random
+from pathlib import Path
 from typing import List
+
+import clip
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torchvision.ops.boxes import nms
-from util.keypoint_ops import keypoint_xyzxyz_to_xyxyzz
 from util import box_ops
-from util.misc import (NestedTensor, nested_tensor_from_tensor_list,
-                       accuracy, get_world_size, interpolate,
-                       is_dist_avail_and_initialized, inverse_sigmoid)
-from .backbone import build_backbone
-from .deformable_transformer import build_deformable_transformer
-from .utils import sigmoid_focal_loss, MLP
+from util.keypoint_ops import keypoint_xyzxyz_to_xyxyzz
+from util.misc import (
+    NestedTensor,
+    accuracy,
+    get_world_size,
+    interpolate,
+    inverse_sigmoid,
+    is_dist_avail_and_initialized,
+    nested_tensor_from_tensor_list,
+)
 
 from ..registry import MODULE_BUILD_FUNCS
-from .mask_generate import prepare_for_mask, post_process
-import random
-from .utils import sigmoid_focal_loss, MLP, _get_activation_fn, gen_sineembed_for_position
-from pathlib import Path
-import clip
-
+from .backbone import build_backbone
+from .deformable_transformer import build_deformable_transformer
+from .mask_generate import post_process, prepare_for_mask
+from .utils import MLP, _get_activation_fn, gen_sineembed_for_position, sigmoid_focal_loss
 
 
 class UniPose(nn.Module):
@@ -216,7 +221,7 @@ class UniPose(nn.Module):
         # two stage
         self.two_stage_type = two_stage_type
         self.two_stage_add_query_num = two_stage_add_query_num
-        assert two_stage_type in ['no', 'standard'], "unknown param {} of two_stage_type".format(two_stage_type)
+        assert two_stage_type in ['no', 'standard'], f"unknown param {two_stage_type} of two_stage_type"
         if two_stage_type != 'no':
             if two_stage_bbox_embed_share:
                 assert dec_pred_class_embed_share and dec_pred_bbox_embed_share
@@ -291,7 +296,7 @@ class UniPose(nn.Module):
             self.refpoint_embed.weight.data[:, :2].requires_grad = False
 
         if self.fix_refpoints_hw > 0:
-            print("fix_refpoints_hw: {}".format(self.fix_refpoints_hw))
+            print(f"fix_refpoints_hw: {self.fix_refpoints_hw}")
             assert self.random_refpoints_xy
             self.refpoint_embed.weight.data[:, 2:] = self.fix_refpoints_hw
             self.refpoint_embed.weight.data[:, 2:] = inverse_sigmoid(self.refpoint_embed.weight.data[:, 2:])
@@ -307,7 +312,7 @@ class UniPose(nn.Module):
             self.refpoint_embed.weight.data[:, :2].requires_grad = False
             self.hw_embed = nn.Embedding(1, 1)
         else:
-            raise NotImplementedError('Unknown fix_refpoints_hw {}'.format(self.fix_refpoints_hw))
+            raise NotImplementedError(f'Unknown fix_refpoints_hw {self.fix_refpoints_hw}')
 
     def forward(self, samples: NestedTensor, targets: List = None, **kw):
         """ The forward expects a NestedTensor, which consists of:
@@ -367,7 +372,7 @@ class UniPose(nn.Module):
             samples = nested_tensor_from_tensor_list(samples)
         features, poss = self.backbone(samples)
         if os.environ.get("SHILONG_AMP_INFNAN_DEBUG") == '1':
-            import ipdb;
+            import ipdb
             ipdb.set_trace()
 
 
@@ -405,7 +410,8 @@ class UniPose(nn.Module):
             assert targets is None
             input_query_bbox = input_query_label = attn_mask = attn_mask2 = dn_meta = None
 
-
+        # hs为内容查询 [bs, num_queries, hidden_dim], reference 为位置查询 [bs, num_queries, 4]
+        # hs[:, :, 0] 为框, hs[:, :, 1:] 为点, num_queries=num_groups*(num_body_points+1)
         hs, reference, hs_enc, ref_enc, init_box_proposal = self.transformer(srcs, masks, input_query_bbox, poss,
                                                                                  input_query_label, attn_mask, attn_mask2,
                                                                                  text_dict, dn_meta,targets,kpt_embeddings_specific)
@@ -420,10 +426,10 @@ class UniPose(nn.Module):
 
         num_group = 50
         effective_dn_number = dn_meta['pad_size'] if self.training else 0
-        outputs_coord_list = []
-        outputs_class = []
+        outputs_coord_list = []  # 检测框 [bs, num_queries, 4]
+        outputs_class = []  # 检测类 [bs, num_queries, num_classes]
 
-
+        # 检测物体框与类别,num_group(50)个框
         for dec_lid, (layer_ref_sig, layer_bbox_embed, layer_cls_embed, layer_hs) in enumerate(
                 zip(reference[:-1], self.bbox_embed, self.class_embed, hs)):
 
@@ -439,7 +445,7 @@ class UniPose(nn.Module):
 
             else:
 
-                layer_hs_bbox_dn = layer_hs[:, :effective_dn_number, :]
+                layer_hs_bbox_dn = layer_hs[:, :effective_dn_number, :]  # 去噪的
                 layer_hs_bbox_norm = layer_hs[:, effective_dn_number:, :][:, 0::(self.num_body_points + 1), :]
                 bs = layer_ref_sig.shape[0]
                 reference_before_sigmoid_bbox_dn = layer_ref_sig[:, :effective_dn_number, :]
@@ -462,6 +468,7 @@ class UniPose(nn.Module):
         outputs_keypoints_list = []
         outputs_keypoints_hw = []
         kpt_index = [x for x in range(num_group * (self.num_body_points + 1)) if x % (self.num_body_points + 1) != 0]
+        # 检测关键点
         for dec_lid, (layer_ref_sig, layer_hs) in enumerate(zip(reference[:-1], hs)):
             if dec_lid < self.num_box_decoder_layers:
                 assert isinstance(layer_hs, torch.Tensor)
