@@ -83,8 +83,8 @@ test:
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
 	# 	-c config_model/UniPose_SwinT.py \
 	# 	-p weights/unipose_swint.pth \
-	# 	-i data/UniKPT/APT-36K/apt36k_annotations_test.json \
-	# 	-d data/UniKPT/AP-36K \
+	# 	-i data/UniKPT/APT-36K/apt36k_annotations_animal_test.json \
+	# 	-d data/UniKPT/APT-36K \
 	# 	-t animal_36K \
 	# 	-o outputs/apt36k_annotations_test.json \
 
@@ -104,23 +104,24 @@ test:
 	# 	-t bird \
 	# 	-o outputs/CUB-200-2011_val_bird.json \
 
-	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
-		-c config_model/UniPose_SwinT.py \
-		-p weights/unipose_swint.pth \
-		-i data/UniKPT/COCO/person_keypoints_val2017_hasgt2.json \
-		-d data/UniKPT/COCO \
-		-t person \
-		-o outputs/person_keypoints_val2017_hasgt2.json \
-		--box_threshold 0.0 \
-		# --draw
-
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
 	# 	-c config_model/UniPose_SwinT.py \
 	# 	-p weights/unipose_swint.pth \
-	# 	-i data/UniKPT/OneHand10K/onehand10k_test.json \
-	# 	-d data/UniKPT/OneHand10K \
-	# 	-t hand \
-	# 	-o outputs/onehand10k_test.json \
+	# 	-i data/UniKPT/COCO/person_keypoints_val2017_hasgt2.json \
+	# 	-d data/UniKPT/COCO \
+	# 	-t person \
+	# 	-o outputs/person_keypoints_val2017_hasgt2.json \
+	# 	--box_threshold 0.0 \
+	# # 	# --draw
+
+	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i data/UniKPT/OneHand10K/onehand10k_test.json \
+		-d data/UniKPT/OneHand10K \
+		-t hand \
+		-o outputs/onehand10k_test.json \
+		# --draw
 
 	
 

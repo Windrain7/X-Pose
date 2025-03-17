@@ -52,8 +52,8 @@ if __name__ == '__main__':
     parser.add_argument('--instance_text_prompt', '-t', type=str, required=True, help='instance text prompt')
     parser.add_argument('--keypoint_text_example', '-k', type=str, default=None, help='keypoint text prompt')
     parser.add_argument('--outfp', '-o', type=str, default='outputs', required=True, help='output file path')
-    parser.add_argument('--box_threshold', type=float, default=0.1, help='box threshold')
-    parser.add_argument('--iou_threshold', type=float, default=0.6, help='nms threshold')
+    parser.add_argument('--box_threshold', type=float, default=0.0, help='box threshold')
+    parser.add_argument('--iou_threshold', type=float, default=0.0, help='nms threshold')
     parser.add_argument('--cpu-only', action='store_true', help='running on cpu only!, default=False')
     parser.add_argument('--draw', action='store_true', help='draw keypoints on images, default=False')
     args = parser.parse_args()
@@ -122,7 +122,7 @@ if __name__ == '__main__':
         keypoints_filt = keypoints_filt[..., : 2 * num_keypoints]
         keypoints_filt *= torch.tensor([W, H] * num_keypoints)
         keypoints_filt = keypoints_filt.reshape(-1, num_keypoints, 2)
-        keypoints_filt = torch.cat([keypoints_filt, torch.ones_like(keypoints_filt[..., :1])], dim=-1)
+        keypoints_filt = torch.cat([keypoints_filt, 2 * torch.ones_like(keypoints_filt[..., :1])], dim=-1)
         keypoints_filt = keypoints_filt.reshape(-1, 3 * num_keypoints)
 
         # Prepare annotations
