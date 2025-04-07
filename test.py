@@ -33,7 +33,10 @@ def pos_process(outputs, box_threshold, iou_threshold, select_min=1):
         boxes_filt = boxes_filt[indices]
         keypoints_filt = keypoints_filt[indices]
 
-    keep_indices = nms(box_ops.box_cxcywh_to_xyxy(boxes_filt), logits_filt.max(dim=1)[0], iou_threshold=iou_threshold)
+    if iou_threshold > 0:
+        keep_indices = nms(box_ops.box_cxcywh_to_xyxy(boxes_filt), logits_filt.max(dim=1)[0], iou_threshold=iou_threshold)
+    else:
+        keep_indices = torch.arange(boxes_filt.shape[0])
 
     # Use keep_indices to filter boxes and keypoints
     filtered_boxes = boxes_filt[keep_indices]

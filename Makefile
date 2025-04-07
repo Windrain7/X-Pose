@@ -25,9 +25,9 @@ infer:
 	CUDA_VISIBLE_DEVICES=${dev} ${cmd} inference_on_a_image.py \
 		-c config_model/UniPose_SwinT.py \
 		-p weights/unipose_swint.pth \
-		-i inputs/car-person \
-		-o outputs/car-person \
-		-t person \
+		-i inputs/inference \
+		-o outputs/inference \
+		-t car \
 		--box_threshold 0.3 \
 		--iou_threshold 0.6
 
@@ -72,13 +72,27 @@ test:
 	# 	-t swivelchair \
 	# 	-o outputs/swivelchair_test.json \
 
-	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
-	# 	-c config_model/UniPose_SwinT.py \
-	# 	-p weights/unipose_swint.pth \
-	# 	-i data/UniKPT/AP-10K/ap10k-test-split1_animal.json \
-	# 	-d data/UniKPT/AP-10K \
-	# 	-t animal_in_AP10K \
-	# 	-o outputs/ap10k-test-split1_animal.json \
+	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i data/UniKPT/AP-10K/ap10k-val-split1_animal.json \
+		-d data/UniKPT/AP-10K \
+		-t "antelope,argali sheep,bison,buffalo,cow,sheep,arctic fox,dog,fox,wolf,beaver,alouatta,monkey,noisy night monkey,spider monkey,uakari,deer,moose,hamster,elephant,horse,zebra,bobcat,cat,cheetah,jaguar,king cheetah,leopard,lion,panther,snow leopard,tiger,giraffe,hippo,chimpanzee,gorilla,orangutan,rabbit,skunk,mouse,rat,otter,weasel,raccoon,rhino,marmot,squirrel,pig,mole,black bear,brown bear,panda,polar bear,bat" \
+		-k animal_in_AP10K \
+		-o outputs/10pct_60pct/ap10k-val-split1_animal.json \
+		--box_threshold 0.0 \
+		--iou_threshold 0.0
+
+	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i data/UniKPT/AP-10K/ap10k-test-split1_animal.json \
+		-d data/UniKPT/AP-10K \
+		-t "antelope,argali sheep,bison,buffalo,cow,sheep,arctic fox,dog,fox,wolf,beaver,alouatta,monkey,noisy night monkey,spider monkey,uakari,deer,moose,hamster,elephant,horse,zebra,bobcat,cat,cheetah,jaguar,king cheetah,leopard,lion,panther,snow leopard,tiger,giraffe,hippo,chimpanzee,gorilla,orangutan,rabbit,skunk,mouse,rat,otter,weasel,raccoon,rhino,marmot,squirrel,pig,mole,black bear,brown bear,panda,polar bear,bat" \
+		-k animal_in_AP10K \
+		-o outputs/10pct_60pct/ap10k-test-split1_animal.json \
+		--box_threshold 0.0 \
+		--iou_threshold 0.0
 
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
 	# 	-c config_model/UniPose_SwinT.py \
@@ -111,17 +125,34 @@ test:
 	# 	-d data/UniKPT/COCO \
 	# 	-t person \
 	# 	-o outputs/person_keypoints_val2017_hasgt2.json \
-	# 	--box_threshold 0.0 \
-	# # 	# --draw
+	# 	# --draw
 
-	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
-		-c config_model/UniPose_SwinT.py \
-		-p weights/unipose_swint.pth \
-		-i data/UniKPT/OneHand10K/onehand10k_test.json \
-		-d data/UniKPT/OneHand10K \
-		-t hand \
-		-o outputs/onehand10k_test.json \
-		# --draw
+	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+	# 	-c config_model/UniPose_SwinT.py \
+	# 	-p weights/unipose_swint.pth \
+	# 	-i data/UniKPT/OneHand10K/onehand10k_test.json \
+	# 	-d data/UniKPT/OneHand10K \
+	# 	-t hand \
+	# 	-o outputs/onehand10k_test.json \
+	# 	# --draw
+
+	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+	# 	-c config_model/UniPose_SwinT.py \
+	# 	-p weights/unipose_swint.pth \
+	# 	-i data/UniKPT/HumanArt/test_humanart_re.json \
+	# 	-d data/UniKPT \
+	# 	-t person \
+	# 	-o outputs/humanart_test.json \
+	# 	# --draw
+
+	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+	# 	-c config_model/UniPose_SwinT.py \
+	# 	-p weights/unipose_swint.pth \
+	# 	-i data/UniKPT/HumanArt/test_humanart_re.json \
+	# 	-d data/UniKPT \
+	# 	-t person \
+	# 	-o outputs/humanart_test_re.json \
+	#	# --draw
 
 	
 
