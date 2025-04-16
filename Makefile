@@ -72,27 +72,27 @@ test:
 	# 	-t swivelchair \
 	# 	-o outputs/swivelchair_test.json \
 
-	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
-		-c config_model/UniPose_SwinT.py \
-		-p weights/unipose_swint.pth \
-		-i data/UniKPT/AP-10K/ap10k-val-split1_animal.json \
-		-d data/UniKPT/AP-10K \
-		-t "antelope,argali sheep,bison,buffalo,cow,sheep,arctic fox,dog,fox,wolf,beaver,alouatta,monkey,noisy night monkey,spider monkey,uakari,deer,moose,hamster,elephant,horse,zebra,bobcat,cat,cheetah,jaguar,king cheetah,leopard,lion,panther,snow leopard,tiger,giraffe,hippo,chimpanzee,gorilla,orangutan,rabbit,skunk,mouse,rat,otter,weasel,raccoon,rhino,marmot,squirrel,pig,mole,black bear,brown bear,panda,polar bear,bat" \
-		-k animal_in_AP10K \
-		-o outputs/10pct_60pct/ap10k-val-split1_animal.json \
-		--box_threshold 0.0 \
-		--iou_threshold 0.0
+	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+	# 	-c config_model/UniPose_SwinT.py \
+	# 	-p weights/unipose_swint.pth \
+	# 	-i /comp_robot/cv_public_dataset/Human_Data/unipose_data/ap-10k/annotations/ap10k-val-split1.json \
+	# 	-d data/UniKPT/AP-10K/imgs \
+	# 	-t "antelope,argali sheep,bison,buffalo,cow,sheep,arctic fox,dog,fox,wolf,beaver,alouatta,monkey,noisy night monkey,spider monkey,uakari,deer,moose,hamster,elephant,horse,zebra,bobcat,cat,cheetah,jaguar,king cheetah,leopard,lion,panther,snow leopard,tiger,giraffe,hippo,chimpanzee,gorilla,orangutan,rabbit,skunk,mouse,rat,otter,weasel,raccoon,rhino,marmot,squirrel,pig,mole,black bear,brown bear,panda,polar bear,bat" \
+	# 	-k animal_in_AP10K \
+	# 	-o outputs/0pct_0pct/ap10k-val-split1.json \
+	# 	--box_threshold 0.0 \
+	# 	--iou_threshold 0.0
 
-	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
-		-c config_model/UniPose_SwinT.py \
-		-p weights/unipose_swint.pth \
-		-i data/UniKPT/AP-10K/ap10k-test-split1_animal.json \
-		-d data/UniKPT/AP-10K \
-		-t "antelope,argali sheep,bison,buffalo,cow,sheep,arctic fox,dog,fox,wolf,beaver,alouatta,monkey,noisy night monkey,spider monkey,uakari,deer,moose,hamster,elephant,horse,zebra,bobcat,cat,cheetah,jaguar,king cheetah,leopard,lion,panther,snow leopard,tiger,giraffe,hippo,chimpanzee,gorilla,orangutan,rabbit,skunk,mouse,rat,otter,weasel,raccoon,rhino,marmot,squirrel,pig,mole,black bear,brown bear,panda,polar bear,bat" \
-		-k animal_in_AP10K \
-		-o outputs/10pct_60pct/ap10k-test-split1_animal.json \
-		--box_threshold 0.0 \
-		--iou_threshold 0.0
+	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+	# 	-c config_model/UniPose_SwinT.py \
+	# 	-p weights/unipose_swint.pth \
+	# 	-i /comp_robot/cv_public_dataset/Human_Data/unipose_data/ap-10k/annotations/ap10k-test-split1.json \
+	# 	-d data/UniKPT/AP-10K/imgs \
+	# 	-t "antelope,argali sheep,bison,buffalo,cow,sheep,arctic fox,dog,fox,wolf,beaver,alouatta,monkey,noisy night monkey,spider monkey,uakari,deer,moose,hamster,elephant,horse,zebra,bobcat,cat,cheetah,jaguar,king cheetah,leopard,lion,panther,snow leopard,tiger,giraffe,hippo,chimpanzee,gorilla,orangutan,rabbit,skunk,mouse,rat,otter,weasel,raccoon,rhino,marmot,squirrel,pig,mole,black bear,brown bear,panda,polar bear,bat" \
+	# 	-k animal_in_AP10K \
+	# 	-o outputs/0pct_0pct/ap10k-test-split1.json \
+	# 	--box_threshold 0.0 \
+	# 	--iou_threshold 0.0
 
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
 	# 	-c config_model/UniPose_SwinT.py \
@@ -136,23 +136,39 @@ test:
 	# 	-o outputs/onehand10k_test.json \
 	# 	# --draw
 
+	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i data/UniKPT/HumanArt/test_humanart.json \
+		-d data/UniKPT \
+		-t person \
+		-o outputs/humanart_test.json \
+		--box_threshold 0.0 \
+		--iou_threshold 0.0
+		# --draw
+
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
 	# 	-c config_model/UniPose_SwinT.py \
 	# 	-p weights/unipose_swint.pth \
-	# 	-i data/UniKPT/HumanArt/test_humanart_re.json \
+	# 	-i data/UniKPT/HumanArt/validation_humanart_re.json \
 	# 	-d data/UniKPT \
 	# 	-t person \
-	# 	-o outputs/humanart_test.json \
+	# 	-o outputs/humanart_validation_re.json \
+	# 	--box_threshold 0.0 \
+	# 	--iou_threshold 0.0
 	# 	# --draw
 
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
 	# 	-c config_model/UniPose_SwinT.py \
 	# 	-p weights/unipose_swint.pth \
-	# 	-i data/UniKPT/HumanArt/test_humanart_re.json \
+	# 	-i data/UniKPT/HumanArt/validation_humanart.json \
 	# 	-d data/UniKPT \
 	# 	-t person \
-	# 	-o outputs/humanart_test_re.json \
-	#	# --draw
+	# 	-o outputs/humanart_validation.json \
+	# 	--box_threshold 0.0 \
+	# 	--iou_threshold 0.0
+		# --draw
+
 
 	
 

@@ -4,7 +4,7 @@ import os
 import pickle
 
 import torch
-from inference_on_a_image import load_image, load_model, plot_on_image, text_encoding
+from inference_on_a_image import load_image, load_model, plot_on_image, target_encoding
 from PIL import Image
 from predefined_keypoints import *
 from torchvision.ops.boxes import nms
@@ -64,6 +64,9 @@ if __name__ == '__main__':
     instance_text_prompt = args.instance_text_prompt
     instance_list = instance_text_prompt.split(',')
 
+    # keypoint_text_prompt = args.keypoint_text_example if args.keypoint_text_example is not None else instance_list
+    # keypoint_names_list = keypoint_text_prompt.split(',')
+
     if args.keypoint_text_example in globals():
         keypoint_dict = globals()[args.keypoint_text_example]
         keypoint_text_prompt = keypoint_dict.get('keypoints')
@@ -80,7 +83,7 @@ if __name__ == '__main__':
     model = model.to(device)
 
     target = {}
-    ins_text_embeddings, kpt_text_embeddings = text_encoding(instance_list, keypoint_text_prompt, model.clip_model, device)
+    ins_text_embeddings, kpt_text_embeddings = target_encoding(instance_list, keypoint_text_prompt, model.clip_model, device)
     target['instance_text_prompt'] = instance_list
     target['keypoint_text_prompt'] = keypoint_text_prompt
     target['object_embeddings_text'] = ins_text_embeddings.float()
@@ -138,6 +141,7 @@ if __name__ == '__main__':
                 'bbox': box.tolist(),
                 'keypoints': keypoints.tolist(),
                 'bbox_score': score.max().item(),
+                'score': score.max().item(),
             }
             annotations.append(annotation)
 

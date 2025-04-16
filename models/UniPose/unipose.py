@@ -336,17 +336,18 @@ class UniPose(nn.Module):
         max_size = 350
         padded_tensors = [torch.cat([tensor, torch.zeros(max_size - tensor.size(0), tensor.size(1),device=tensor.device)]) if tensor.size(0) < max_size else tensor for tensor in tensor_list]
         object_embeddings_text = torch.stack(padded_tensors)
+        encoded_text=self.projection(object_embeddings_text) # bs, 350, 256
 
-        kpts_embeddings_text = torch.stack([tgt["kpts_embeddings_text"] for tgt in targets])[:, :self.num_body_points]
-        encoded_text=self.projection(object_embeddings_text) # bs, 81, 101, 256
-        kpt_embeddings_specific=self.projection_kpt(kpts_embeddings_text) # bs, 81, 101, 256
-
-
-        kpt_vis = torch.stack([tgt["kpt_vis_text"] for tgt in targets])[:, :self.num_body_points]
-        kpt_mask = torch.cat((torch.ones_like(kpt_vis, device=kpt_vis.device)[..., 0].unsqueeze(-1), kpt_vis), dim=-1)
+        kpts_embeddings_text = torch.stack([tgt["kpts_embeddings_text"] for tgt in targets])[:, :, :self.num_body_points]  # bs, instance, 68, 256
+        kpt_embeddings_specific=self.projection_kpt(kpts_embeddings_text) # bs, instance, 68, 256
 
 
-        num_classes = encoded_text.shape[1] # bs, 81, 101, 256
+        kpt_vis = torch.stack([tgt["kpt_vis_text"] for tgt in targets])[..., :self.num_body_points]  # bs, instance, 68
+        kpt_mask = torch.nn.functional.pad(kpt_vis, (1, 0), mode='constant', value=1)  # bs, instance, 69
+        # kpt_mask = torch.cat((torch.ones_like(kpt_vis, device=kpt_vis.device)[..., 0].unsqueeze(-1), kpt_vis), dim=-1)
+
+
+        num_classes = encoded_text.shape[1] # bs, 350, 256
         text_self_attention_masks = torch.eye(num_classes).unsqueeze(0).expand(bs, -1, -1).bool().to(samples.device)
         text_token_mask = torch.zeros(samples.shape[0],num_classes).to(samples.device)>0
         for i in range(bs):
@@ -359,10 +360,10 @@ class UniPose(nn.Module):
 
 
         text_dict = {
-            'encoded_text': encoded_text, # bs, 195, d_model
-            'text_token_mask': text_token_mask, # bs, 195
-            'position_ids': position_ids, # bs, 195
-            'text_self_attention_masks': text_self_attention_masks # bs, 195,195
+            'encoded_text': encoded_text, # bs, 350, d_model
+            'text_token_mask': text_token_mask, # bs, 350
+            'position_ids': position_ids, # bs, 350
+            'text_self_attention_masks': text_self_attention_masks # bs, 350, 350
         }
 
 
@@ -405,13 +406,14 @@ class UniPose(nn.Module):
             label_enc = encoded_text
         if self.dn_number > 0 or targets is not None:
             input_query_label, input_query_bbox, attn_mask, attn_mask2, dn_meta = \
-                prepare_for_mask(kpt_mask=kpt_mask)
+                prepare_for_mask(kpt_mask=kpt_mask[:, 0, :])
         else:
             assert targets is None
             input_query_bbox = input_query_label = attn_mask = attn_mask2 = dn_meta = None
 
         # hs为内容查询 [bs, num_queries, hidden_dim], reference 为位置查询 [bs, num_queries, 4]
-        # hs[:, :, 0] 为框, hs[:, :, 1:] 为点, num_queries=num_groups*(num_body_points+1)
+        # hs[:, 0, :] 为框特征, hs[:, 1:, :] 为点特征, num_queries=num_groups*(num_body_points+1)
+        # reference[:, 0, :] 为框位置, reference[:, 1:, :] 为点位置, num_queries=num_groups*(num_body_points+1)
         hs, reference, hs_enc, ref_enc, init_box_proposal = self.transformer(srcs, masks, input_query_bbox, poss,
                                                                                  input_query_label, attn_mask, attn_mask2,
                                                                                  text_dict, dn_meta,targets,kpt_embeddings_specific)
@@ -468,7 +470,7 @@ class UniPose(nn.Module):
         outputs_keypoints_list = []
         outputs_keypoints_hw = []
         kpt_index = [x for x in range(num_group * (self.num_body_points + 1)) if x % (self.num_body_points + 1) != 0]
-        # 检测关键点
+        # 从特征解码关键点
         for dec_lid, (layer_ref_sig, layer_hs) in enumerate(zip(reference[:-1], hs)):
             if dec_lid < self.num_box_decoder_layers:
                 assert isinstance(layer_hs, torch.Tensor)

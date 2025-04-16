@@ -6,6 +6,7 @@ import clip
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn.functional as F
 import transforms as T
 from matplotlib import transforms
 from matplotlib.collections import PatchCollection
@@ -18,32 +19,70 @@ from util import box_ops
 from util.config import Config
 from util.utils import clean_state_dict
 
+# def text_encoding(instance_names, keypoints_names, model, device):
+#     ins_text_embeddings = []
+#     for cat in instance_names:
+#         instance_description = f'a photo of {cat.lower().replace("_", " ").replace("-", " ")}'
+#         text = clip.tokenize(instance_description).to(device)
+#         text_features = model.encode_text(text)  # 1*512
+#         ins_text_embeddings.append(text_features)
+#     ins_text_embeddings = torch.cat(ins_text_embeddings, dim=0)
 
-def text_encoding(instance_names, keypoints_names, model, device):
+#     kpt_text_embeddings = []
+
+#     for kpt in keypoints_names:
+#         kpt_description = f'a photo of {kpt.lower().replace("_", " ")}'
+#         text = clip.tokenize(kpt_description).to(device)
+#         with torch.no_grad():
+#             text_features = model.encode_text(text)  # 1*512
+#         kpt_text_embeddings.append(text_features)
+
+#     kpt_text_embeddings = torch.cat(kpt_text_embeddings, dim=0)
+
+#     return ins_text_embeddings, kpt_text_embeddings
+
+
+def target_encoding(instance_text_prompt, keypoint_text_prompt, model, device):
+    target = {}
+    target['keypoints_skeleton_list'] = []
+
+    instance_names = instance_text_prompt.split(',')
     ins_text_embeddings = []
     for cat in instance_names:
         instance_description = f'a photo of {cat.lower().replace("_", " ").replace("-", " ")}'
         text = clip.tokenize(instance_description).to(device)
         text_features = model.encode_text(text)  # 1*512
         ins_text_embeddings.append(text_features)
-    ins_text_embeddings = torch.cat(ins_text_embeddings, dim=0)
+    ins_text_embeddings = torch.cat(ins_text_embeddings, dim=0)  # [prompts, 512]
+    target['instance_text_prompt'] = instance_names
+    target['object_embeddings_text'] = ins_text_embeddings.float()
 
-    kpt_text_embeddings = []
-
-    for kpt in keypoints_names:
-        kpt_description = f'a photo of {kpt.lower().replace("_", " ")}'
-        text = clip.tokenize(kpt_description).to(device)
-        with torch.no_grad():
+    keypoint_text_examples = keypoint_text_prompt.split(',')
+    kpt_text_embeddings = []  # [prompts, 100, 512], pad to 100
+    kpt_vis_text = []  # [prompts, 100]
+    for kpt_text_example in keypoint_text_examples:
+        kpt_names = globals()[kpt_text_example]['keypoints']
+        target['keypoints_skeleton_list'].append(globals()[kpt_text_example]['skeleton'])
+        text_embeddings = []
+        for kpt in kpt_names:
+            kpt_description = f'a photo of {kpt.lower().replace("_", " ")}'
+            text = clip.tokenize(kpt_description).to(device)
             text_features = model.encode_text(text)  # 1*512
-        kpt_text_embeddings.append(text_features)
+            text_embeddings.append(text_features)
+        text_embeddings = torch.cat(text_embeddings, dim=0)
+        kpt_vis = torch.ones(text_embeddings.shape[0], device=device)
+        kpt_text_embeddings.append(F.pad(text_embeddings, (0, 0, 0, 100 - text_embeddings.shape[0])))
+        kpt_vis_text.append(F.pad(kpt_vis, (0, 100 - kpt_vis.shape[0])))
+    kpt_text_embeddings = torch.stack(kpt_text_embeddings, dim=0)  # [prompts, 100, 512]
+    kpt_vis_text = torch.stack(kpt_vis_text, dim=0)  # [prompts, 100]
+    target['keypoint_text_example'] = keypoint_text_examples
+    target['kpts_embeddings_text'] = kpt_text_embeddings.float()
+    target['kpt_vis_text'] = kpt_vis_text
 
-    kpt_text_embeddings = torch.cat(kpt_text_embeddings, dim=0)
-
-    return ins_text_embeddings, kpt_text_embeddings
+    return target
 
 
-def plot_on_image(image_pil, tgt, keypoint_skeleton, keypoint_text_prompt, output_dir, out_fp=None):
-    num_kpts = len(keypoint_text_prompt)
+def plot_on_image(image_pil, tgt, keypoint_skeletons_list, kpt_vis_text, output_dir, out_fp=None):
     H, W = tgt['size']
     fig = plt.figure(frameon=False)
     dpi = plt.gcf().dpi
@@ -56,7 +95,7 @@ def plot_on_image(image_pil, tgt, keypoint_skeleton, keypoint_text_prompt, outpu
     ax.set_ylim(H, 0)
     ax.set_aspect('equal')
     color_kpt = [
-        [0.00, 0.00, 0.00],
+        [0.53, 0.81, 0.92],
         [1.00, 1.00, 1.00],
         [1.00, 0.00, 0.00],
         [1.00, 1, 00.0, 0.00],
@@ -157,10 +196,12 @@ def plot_on_image(image_pil, tgt, keypoint_skeleton, keypoint_text_prompt, outpu
         [0.85, 0.57, 0.94],
     ]
     color = []
-    color_box = [0.53, 0.81, 0.92]
+    # 根据label_ids选择颜色
+    # color_box = color_kpt[tgt['label_ids'].cpu()]
+    # color_box = [0.53, 0.81, 0.92]
     polygons = []
     boxes = []
-    for box in tgt['boxes'].cpu():
+    for box, label_id in zip(tgt['boxes'].cpu(), tgt['label_ids'].cpu()):
         unnormbbox = box * torch.Tensor([W, H, W, H])
         unnormbbox[:2] -= unnormbbox[2:] / 2  # cswh to xywh
         [bbox_x, bbox_y, bbox_w, bbox_h] = unnormbbox.tolist()
@@ -168,7 +209,7 @@ def plot_on_image(image_pil, tgt, keypoint_skeleton, keypoint_text_prompt, outpu
         poly = [[bbox_x, bbox_y], [bbox_x, bbox_y + bbox_h], [bbox_x + bbox_w, bbox_y + bbox_h], [bbox_x + bbox_w, bbox_y]]
         np_poly = np.array(poly).reshape((4, 2))
         polygons.append(Polygon(np_poly))
-        color.append(color_box)
+        color.append(color_kpt[label_id])
 
     p = PatchCollection(polygons, facecolor=color, linewidths=0, alpha=0.1)
     ax.add_collection(p)
@@ -176,14 +217,15 @@ def plot_on_image(image_pil, tgt, keypoint_skeleton, keypoint_text_prompt, outpu
     ax.add_collection(p)
 
     if 'keypoints' in tgt:
-        sks = np.array(keypoint_skeleton)
-        # import pdb;pdb.set_trace()
-        if sks.shape[0] != 0:
-            if sks.min() == 1:
-                sks = sks - 1
+        for idx, (keypoint, label_id) in enumerate(zip(tgt['keypoints'], tgt['label_ids'])):
+            num_kpts = int(kpt_vis_text[label_id].sum())
+            sks = np.array(keypoint_skeletons_list[label_id])
+            # import pdb;pdb.set_trace()
+            if sks.shape[0] != 0:
+                if sks.min() == 1:
+                    sks = sks - 1
 
-        for idx, ann in enumerate(tgt['keypoints']):
-            kp = np.array(ann.cpu())
+            kp = np.array(keypoint.cpu())
             Z = kp[: num_kpts * 2] * np.array([W, H] * num_kpts)
             x = Z[0::2]
             y = Z[1::2]
@@ -233,7 +275,7 @@ def load_model(model_config_path, model_checkpoint_path, cpu_only=False):
 
 
 def get_unipose_output(
-    model, image, instance_text_prompt, keypoint_text_prompt, box_threshold, iou_threshold, with_logits=True, cpu_only=False, select_min=1
+    model, image, instance_text_prompt, keypoint_text_example, box_threshold, iou_threshold, with_logits=True, cpu_only=False, select_min=1
 ):
     # instance_text_prompt: A, B, C, ...
     # keypoint_text_prompt: skeleton
@@ -241,28 +283,18 @@ def get_unipose_output(
     device = 'cuda' if not cpu_only else 'cpu'
 
     # clip_model, _ = clip.load("ViT-B/32", device=device)
-    instance_list = instance_text_prompt.split(',')
-    ins_text_embeddings, kpt_text_embeddings = text_encoding(instance_list, keypoint_text_prompt, model.clip_model, device)
-    target = {}
-    target['instance_text_prompt'] = instance_list
-    target['keypoint_text_prompt'] = keypoint_text_prompt
-    target['object_embeddings_text'] = ins_text_embeddings.float()
-    kpt_text_embeddings = kpt_text_embeddings.float()
-    kpts_embeddings_text_pad = torch.zeros(100 - kpt_text_embeddings.shape[0], 512, device=device)
-    target['kpts_embeddings_text'] = torch.cat((kpt_text_embeddings, kpts_embeddings_text_pad), dim=0)
-    kpt_vis_text = torch.ones(kpt_text_embeddings.shape[0], device=device)
-    kpt_vis_text_pad = torch.zeros(kpts_embeddings_text_pad.shape[0], device=device)
-    target['kpt_vis_text'] = torch.cat((kpt_vis_text, kpt_vis_text_pad), dim=0)
+    target = target_encoding(instance_text_prompt, keypoint_text_example, model.clip_model, device)
     # import pdb;pdb.set_trace()
     model = model.to(device)
     image = image.to(device)
 
     with torch.no_grad():
+        # 每个image对应一个target
         outputs = model(image[None], [target])
 
     logits = outputs['pred_logits'].sigmoid()[0]  # (nq, 256)
     boxes = outputs['pred_boxes'][0]  # (nq, 4)
-    keypoints = outputs['pred_keypoints'][0][:, : 2 * len(keypoint_text_prompt)]  # (nq, n_kpts * 2)
+    keypoints = outputs['pred_keypoints'][0]  # (nq, 68 * 2)
     # filter output
     logits_filt = logits.cpu().clone()
     boxes_filt = boxes.cpu().clone()
@@ -283,8 +315,10 @@ def get_unipose_output(
     # Use keep_indices to filter boxes and keypoints
     filtered_boxes = boxes_filt[keep_indices]
     filtered_keypoints = keypoints_filt[keep_indices]
+    filtered_logits = logits_filt[keep_indices]
+    filtered_label_ids = torch.argmax(filtered_logits, dim=1)
 
-    return filtered_boxes, filtered_keypoints
+    return filtered_boxes, filtered_keypoints, filtered_logits, filtered_label_ids, target['kpt_vis_text'], target['keypoints_skeleton_list']
 
 
 if __name__ == '__main__':
@@ -307,19 +341,7 @@ if __name__ == '__main__':
     image_path = args.image_path
     instance_text_prompt = args.instance_text_prompt
     keypoint_text_example = args.keypoint_text_example
-
-    if keypoint_text_example in globals():
-        keypoint_dict = globals()[keypoint_text_example]
-        keypoint_text_prompt = keypoint_dict.get('keypoints')
-        keypoint_skeleton = keypoint_dict.get('skeleton')
-    elif instance_text_prompt in globals():
-        keypoint_dict = globals()[instance_text_prompt]
-        keypoint_text_prompt = keypoint_dict.get('keypoints')
-        keypoint_skeleton = keypoint_dict.get('skeleton')
-    else:
-        keypoint_dict = globals()['animal']
-        keypoint_text_prompt = keypoint_dict.get('keypoints')
-        keypoint_skeleton = keypoint_dict.get('skeleton')
+    instance_list = instance_text_prompt
 
     output_dir = args.output_dir
 
@@ -349,12 +371,11 @@ if __name__ == '__main__':
         image_pil.save(os.path.join(output_dir, f'{name}_raw{ext}'))
 
         # run model
-        boxes_filt, keypoints_filt = get_unipose_output(
-            model, image, instance_text_prompt, keypoint_text_prompt, box_threshold, iou_threshold, cpu_only=args.cpu_only
+        boxes_filt, keypoints_filt, logits_filt, label_ids_filt, kpt_vis_text, keypoint_skeletons_list = get_unipose_output(
+            model, image, instance_text_prompt, keypoint_text_example, box_threshold, iou_threshold, cpu_only=args.cpu_only
         )
-
         # visualize pred
         size = image_pil.size
-        pred_dict = {'boxes': boxes_filt, 'keypoints': keypoints_filt, 'size': [size[1], size[0]]}
+        pred_dict = {'boxes': boxes_filt, 'keypoints': keypoints_filt, 'logits': logits_filt, 'label_ids': label_ids_filt, 'size': [size[1], size[0]]}
         # import ipdb; ipdb.set_trace()
-        plot_on_image(image_pil, pred_dict, keypoint_skeleton, keypoint_text_prompt, output_dir, out_fp=f'{name}_{{{instance_text_prompt}}}{ext}')
+        plot_on_image(image_pil, pred_dict, keypoint_skeletons_list, kpt_vis_text, output_dir, out_fp=f'{name}_{{{instance_text_prompt}}}{ext}')
