@@ -22,14 +22,26 @@ setup-data:
 	# -ln -s /comp_robot/shock/mirror_home/workspace/mmpose/log
 
 infer:
+	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} inference_on_a_image.py \
+	# 	-c config_model/UniPose_SwinT.py \
+	# 	-p weights/unipose_swint.pth \
+	# 	-i inputs/car-person \
+	# 	-o outputs/cat-person \
+	# 	-t 'person,car' \
+	# 	-k 'person,car' \
+	# 	--box_threshold 0.3 \
+	# 	--iou_threshold 0.3
+
 	CUDA_VISIBLE_DEVICES=${dev} ${cmd} inference_on_a_image.py \
 		-c config_model/UniPose_SwinT.py \
 		-p weights/unipose_swint.pth \
-		-i inputs/inference \
-		-o outputs/inference \
-		-t car \
+		-i inputs/k5-others \
+		-o outputs/k5-others \
+		-t "table,bed,chair,sofa,swivelchair" \
+		-k "table,bed,chair,sofa,swivelchair" \
 		--box_threshold 0.3 \
-		--iou_threshold 0.6
+		--iou_threshold 0.3
+
 
 test:
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
@@ -107,7 +119,8 @@ test:
 	# 	-p weights/unipose_swint.pth \
 	# 	-i data/UniKPT/CarFusion/car_keypoints_test.json \
 	# 	-d data/UniKPT/CarFusion \
-	# 	-t car \
+	# 	-t car,person,hand \
+	# 	-k car,person,hand \
 	# 	-o outputs/car_keypoints_test.json \
 
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
@@ -124,7 +137,8 @@ test:
 	# 	-i data/UniKPT/COCO/person_keypoints_val2017_hasgt2.json \
 	# 	-d data/UniKPT/COCO \
 	# 	-t person \
-	# 	-o outputs/person_keypoints_val2017_hasgt2.json \
+	# 	-k person \
+	# 	-o outputs/person_keypoints_val2017_hasgt2_{person}.json \
 	# 	# --draw
 
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
@@ -132,31 +146,33 @@ test:
 	# 	-p weights/unipose_swint.pth \
 	# 	-i data/UniKPT/OneHand10K/onehand10k_test.json \
 	# 	-d data/UniKPT/OneHand10K \
-	# 	-t hand \
+	# 	-t hand,person,car \
+	# 	-k hand,person,car \
 	# 	-o outputs/onehand10k_test.json \
+	# 	# --draw
+
+	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
+	# 	-c config_model/UniPose_SwinT.py \
+	# 	-p weights/unipose_swint.pth \
+	# 	-i data/UniKPT/HumanArt/test_humanart.json \
+	# 	-d data/UniKPT \
+	# 	-t person \
+	# 	-o outputs/humanart_test.json \
+	# 	--box_threshold 0.0 \
+	# 	--iou_threshold 0.0
 	# 	# --draw
 
 	CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
 		-c config_model/UniPose_SwinT.py \
 		-p weights/unipose_swint.pth \
-		-i data/UniKPT/HumanArt/test_humanart.json \
+		-i data/UniKPT/HumanArt/validation_humanart_re.json \
 		-d data/UniKPT \
 		-t person \
-		-o outputs/humanart_test.json \
+		-k person \
+		-o outputs/humanart_validation_re_{person}.json \
 		--box_threshold 0.0 \
 		--iou_threshold 0.0
 		# --draw
-
-	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
-	# 	-c config_model/UniPose_SwinT.py \
-	# 	-p weights/unipose_swint.pth \
-	# 	-i data/UniKPT/HumanArt/validation_humanart_re.json \
-	# 	-d data/UniKPT \
-	# 	-t person \
-	# 	-o outputs/humanart_validation_re.json \
-	# 	--box_threshold 0.0 \
-	# 	--iou_threshold 0.0
-	# 	# --draw
 
 	# CUDA_VISIBLE_DEVICES=${dev} ${cmd} test.py \
 	# 	-c config_model/UniPose_SwinT.py \

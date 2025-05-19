@@ -82,7 +82,7 @@ def target_encoding(instance_text_prompt, keypoint_text_prompt, model, device):
     return target
 
 
-def plot_on_image(image_pil, tgt, keypoint_skeletons_list, kpt_vis_text, output_dir, out_fp=None):
+def plot_on_image(image_pil, tgt, keypoint_skeletons_list, kpt_vis_text, output_dir, out_fp=None, instance_text_prompt=None):
     H, W = tgt['size']
     fig = plt.figure(frameon=False)
     dpi = plt.gcf().dpi
@@ -90,45 +90,11 @@ def plot_on_image(image_pil, tgt, keypoint_skeletons_list, kpt_vis_text, output_
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
     ax = plt.gca()
     ax.imshow(image_pil, aspect='equal')
-    ax = plt.gca()
     ax.set_xlim(0, W)
     ax.set_ylim(H, 0)
     ax.set_aspect('equal')
     color_kpt = [
         [0.53, 0.81, 0.92],
-        [1.00, 1.00, 1.00],
-        [1.00, 0.00, 0.00],
-        [1.00, 1, 00.0, 0.00],
-        [0.50, 0.16, 0.16],
-        [0.00, 0.00, 1.00],
-        [0.69, 0.88, 0.90],
-        [0.00, 1.00, 0.00],
-        [0.63, 0.13, 0.94],
-        [0.82, 0.71, 0.55],
-        [1.00, 0.38, 0.00],
-        [0.53, 0.15, 0.34],
-        [1.00, 0.39, 0.28],
-        [1.00, 0.00, 1.00],
-        [0.04, 0.09, 0.27],
-        [0.20, 0.63, 0.79],
-        [0.94, 0.90, 0.55],
-        [0.33, 0.42, 0.18],
-        [0.53, 0.81, 0.92],
-        [0.71, 0.49, 0.86],
-        [0.25, 0.88, 0.82],
-        [0.5, 0.0, 0.0],
-        [0.0, 0.3, 0.3],
-        [1.0, 0.85, 0.73],
-        [0.29, 0.0, 0.51],
-        [0.7, 0.5, 0.35],
-        [0.44, 0.5, 0.56],
-        [0.25, 0.41, 0.88],
-        [0.0, 0.5, 0.0],
-        [0.56, 0.27, 0.52],
-        [1.0, 0.84, 0.0],
-        [1.0, 0.5, 0.31],
-        [0.85, 0.57, 0.94],
-        [0.00, 0.00, 0.00],
         [1.00, 1.00, 1.00],
         [1.00, 0.00, 0.00],
         [1.00, 1, 00.0, 0.00],
@@ -201,6 +167,15 @@ def plot_on_image(image_pil, tgt, keypoint_skeletons_list, kpt_vis_text, output_
     # color_box = [0.53, 0.81, 0.92]
     polygons = []
     boxes = []
+
+    # 如果提供了instance_text_prompt，将其拆分为列表
+    instance_names = None
+    if instance_text_prompt is not None:
+        if isinstance(instance_text_prompt, str):
+            instance_names = instance_text_prompt.split(',')
+        else:
+            instance_names = instance_text_prompt
+
     for box, label_id in zip(tgt['boxes'].cpu(), tgt['label_ids'].cpu()):
         unnormbbox = box * torch.Tensor([W, H, W, H])
         unnormbbox[:2] -= unnormbbox[2:] / 2  # cswh to xywh
@@ -210,6 +185,18 @@ def plot_on_image(image_pil, tgt, keypoint_skeletons_list, kpt_vis_text, output_
         np_poly = np.array(poly).reshape((4, 2))
         polygons.append(Polygon(np_poly))
         color.append(color_kpt[label_id])
+
+        # 在边界框框内添加文本标签
+        if instance_names is not None and label_id < len(instance_names):
+            label_text = instance_names[label_id]
+            plt.text(
+                bbox_x,
+                bbox_y + 10,
+                label_text,
+                color=color_kpt[label_id],
+                fontsize=12,
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=0.5),
+            )
 
     p = PatchCollection(polygons, facecolor=color, linewidths=0, alpha=0.1)
     ax.add_collection(p)
@@ -368,7 +355,7 @@ if __name__ == '__main__':
         # visualize raw image
         filename = os.path.basename(image_path)
         name, ext = os.path.splitext(filename)
-        image_pil.save(os.path.join(output_dir, f'{name}_raw{ext}'))
+        # image_pil.save(os.path.join(output_dir, f'{name}_raw{ext}'))
 
         # run model
         boxes_filt, keypoints_filt, logits_filt, label_ids_filt, kpt_vis_text, keypoint_skeletons_list = get_unipose_output(
@@ -378,4 +365,12 @@ if __name__ == '__main__':
         size = image_pil.size
         pred_dict = {'boxes': boxes_filt, 'keypoints': keypoints_filt, 'logits': logits_filt, 'label_ids': label_ids_filt, 'size': [size[1], size[0]]}
         # import ipdb; ipdb.set_trace()
-        plot_on_image(image_pil, pred_dict, keypoint_skeletons_list, kpt_vis_text, output_dir, out_fp=f'{name}_{{{instance_text_prompt}}}{ext}')
+        plot_on_image(
+            image_pil,
+            pred_dict,
+            keypoint_skeletons_list,
+            kpt_vis_text,
+            output_dir,
+            out_fp=f'{name}_{{{instance_text_prompt}}}{ext}',
+            instance_text_prompt=instance_list,
+        )

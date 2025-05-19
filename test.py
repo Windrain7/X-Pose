@@ -16,7 +16,7 @@ def pos_process(outputs, box_threshold, iou_threshold, select_min=1):
     # Filter boxes
     logits = outputs['pred_logits'].sigmoid()[0]  # (nq, 256)
     boxes = outputs['pred_boxes'][0]  # (nq, 4)
-    keypoints = outputs['pred_keypoints'][0][:, : 2 * len(keypoint_text_prompt)]  # (nq, n_kpts * 2)
+    keypoints = outputs['pred_keypoints'][0]  # (nq, 68*3)
     # filter output
     logits_filt = logits.cpu().clone()
     boxes_filt = boxes.cpu().clone()
@@ -42,8 +42,9 @@ def pos_process(outputs, box_threshold, iou_threshold, select_min=1):
     filtered_boxes = boxes_filt[keep_indices]
     filtered_keypoints = keypoints_filt[keep_indices]
     filtered_logits = logits_filt[keep_indices]
+    filtered_label_ids = torch.argmax(filtered_logits, dim=1)
 
-    return filtered_boxes, filtered_keypoints, filtered_logits
+    return filtered_boxes, filtered_keypoints, filtered_logits, filtered_label_ids
 
 
 if __name__ == '__main__':
@@ -61,39 +62,11 @@ if __name__ == '__main__':
     parser.add_argument('--draw', action='store_true', help='draw keypoints on images, default=False')
     args = parser.parse_args()
 
-    instance_text_prompt = args.instance_text_prompt
-    instance_list = instance_text_prompt.split(',')
-
-    # keypoint_text_prompt = args.keypoint_text_example if args.keypoint_text_example is not None else instance_list
-    # keypoint_names_list = keypoint_text_prompt.split(',')
-
-    if args.keypoint_text_example in globals():
-        keypoint_dict = globals()[args.keypoint_text_example]
-        keypoint_text_prompt = keypoint_dict.get('keypoints')
-        keypoint_skeleton = keypoint_dict.get('skeleton')
-    elif args.instance_text_prompt in globals():
-        keypoint_dict = globals()[instance_list[0]]
-        keypoint_text_prompt = keypoint_dict.get('keypoints')
-        keypoint_skeleton = keypoint_dict.get('skeleton')
-    else:
-        raise ValueError('Invalid keypoint_text_example or instance_text_prompt')
-
     model = load_model(args.config_file, args.checkpoint_path, cpu_only=args.cpu_only)
     device = 'cpu' if args.cpu_only else 'cuda'
     model = model.to(device)
 
-    target = {}
-    ins_text_embeddings, kpt_text_embeddings = target_encoding(instance_list, keypoint_text_prompt, model.clip_model, device)
-    target['instance_text_prompt'] = instance_list
-    target['keypoint_text_prompt'] = keypoint_text_prompt
-    target['object_embeddings_text'] = ins_text_embeddings.float()
-    kpt_text_embeddings = kpt_text_embeddings.float()
-    kpts_embeddings_text_pad = torch.zeros(100 - kpt_text_embeddings.shape[0], 512, device=device)
-    target['kpts_embeddings_text'] = torch.cat((kpt_text_embeddings, kpts_embeddings_text_pad), dim=0)
-    kpt_vis_text = torch.ones(kpt_text_embeddings.shape[0], device=device)
-    kpt_vis_text_pad = torch.zeros(kpts_embeddings_text_pad.shape[0], device=device)
-    target['kpt_vis_text'] = torch.cat((kpt_vis_text, kpt_vis_text_pad), dim=0)
-
+    target = target_encoding(args.instance_text_prompt, args.keypoint_text_example, model.clip_model, device)
     with open(args.coco_path) as f:
         coco_data = json.load(f)
 
@@ -109,34 +82,41 @@ if __name__ == '__main__':
         with torch.no_grad():
             outputs = model(image[None], [target])
 
-        boxes_filt, keypoints_filt, scores_filt = pos_process(outputs, args.box_threshold, args.iou_threshold)
+        boxes_filt, keypoints_filt, scores_filt, label_ids_filt = pos_process(outputs, args.box_threshold, args.iou_threshold)
         predictions.append({'image_id': image_info['id'], 'boxes': boxes_filt, 'keypoints': keypoints_filt, 'scores': scores_filt})
 
         if args.draw:
             size = image_pil.size
-            pred_dict = {'boxes': boxes_filt, 'keypoints': keypoints_filt, 'size': [size[1], size[0]]}
+            pred_dict = {'boxes': boxes_filt, 'keypoints': keypoints_filt, 'scores': scores_filt, 'label_ids': label_ids_filt,'size': [size[1], size[0]]}
             directory = os.path.splitext(outfp)[0]
             os.makedirs(directory, exist_ok=True)
             filename = image_info['file_name'].split('/')[-1]
-            plot_on_image(image_pil, pred_dict, keypoint_skeleton, keypoint_text_prompt, directory, filename)
+            plot_on_image(image_pil, pred_dict, target['keypoints_skeleton_list'], target['kpt_vis_text'], directory, filename)
 
         # Convert bbox and keypoints to original image size
         W, H = image_pil.size
         boxes_filt[:, :2] -= boxes_filt[:, 2:] / 2  # cswh to xywh
         boxes_filt *= torch.tensor([W, H, W, H])
-        num_keypoints = len(keypoint_text_prompt)
-        keypoints_filt = keypoints_filt[..., : 2 * num_keypoints]
-        keypoints_filt *= torch.tensor([W, H] * num_keypoints)
-        keypoints_filt = keypoints_filt.reshape(-1, num_keypoints, 2)
-        keypoints_filt = torch.cat([keypoints_filt, 2 * torch.ones_like(keypoints_filt[..., :1])], dim=-1)
-        keypoints_filt = keypoints_filt.reshape(-1, 3 * num_keypoints)
+
+        # num_keypoints = len(keypoint_text_prompt)
+        # keypoints_filt = keypoints_filt[..., : 2 * num_keypoints]
+        # keypoints_filt *= torch.tensor([W, H] * num_keypoints)
+        # keypoints_filt = keypoints_filt.reshape(-1, num_keypoints, 2)
+        # keypoints_filt = torch.cat([keypoints_filt, 2 * torch.ones_like(keypoints_filt[..., :1])], dim=-1)
+        # keypoints_filt = keypoints_filt.reshape(-1, 3 * num_keypoints)
 
         # Prepare annotations
-        for box, keypoints, score in zip(boxes_filt, keypoints_filt, scores_filt):
+        for box, keypoints, score, label_id in zip(boxes_filt, keypoints_filt, scores_filt, label_ids_filt):
+            label_id = label_id.item()
+            kpt_num = int(target['kpt_vis_text'][label_id].sum())
+            keypoints = keypoints[: 2 * kpt_num] * torch.tensor([W, H] * kpt_num)
+            keypoints = keypoints.reshape(kpt_num, 2)
+            keypoints = torch.cat([keypoints, 2 * torch.ones_like(keypoints[..., :1])], dim=-1)
+            keypoints = keypoints.reshape(-1)
             annotation = {
                 'id': len(annotations),
                 'image_id': image_info['id'],
-                'category_id': torch.argmax(score).item(),  # score中最大值的下标
+                'category_id': label_id,  # score中最大值的下标
                 # 'category_id': coco_data['categories'][0]['id'],  # Assuming single category
                 'bbox': box.tolist(),
                 'keypoints': keypoints.tolist(),
