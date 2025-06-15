@@ -95,9 +95,9 @@ def plot_on_image(image_pil, tgt, keypoint_skeletons_list, kpt_vis_text, output_
     ax.set_aspect('equal')
     color_kpt = [
         [0.53, 0.81, 0.92],
-        [1.00, 1.00, 1.00],
-        [1.00, 0.00, 0.00],
-        [1.00, 1, 00.0, 0.00],
+        [0.82, 0.71, 0.55],
+        [1.00, 0.39, 0.28],
+        [0.53, 0.81, 0.92],
         [0.50, 0.16, 0.16],
         [0.00, 0.00, 1.00],
         [0.69, 0.88, 0.90],
@@ -130,7 +130,7 @@ def plot_on_image(image_pil, tgt, keypoint_skeletons_list, kpt_vis_text, output_
         [0.00, 0.00, 0.00],
         [1.00, 1.00, 1.00],
         [1.00, 0.00, 0.00],
-        [1.00, 1, 00.0, 0.00],
+        [1.00, 1.00, 0.00],
         [0.50, 0.16, 0.16],
         [0.00, 0.00, 1.00],
         [0.69, 0.88, 0.90],
@@ -179,7 +179,11 @@ def plot_on_image(image_pil, tgt, keypoint_skeletons_list, kpt_vis_text, output_
     for box, label_id in zip(tgt['boxes'].cpu(), tgt['label_ids'].cpu()):
         unnormbbox = box * torch.Tensor([W, H, W, H])
         unnormbbox[:2] -= unnormbbox[2:] / 2  # cswh to xywh
-        [bbox_x, bbox_y, bbox_w, bbox_h] = unnormbbox.tolist()
+        # clip bbox
+        bbox_x = max(0, min(unnormbbox[0], W))
+        bbox_y = max(0, min(unnormbbox[1], H))
+        bbox_w = max(0, min(unnormbbox[2], W - bbox_x))
+        bbox_h = max(0, min(unnormbbox[3], H - bbox_y))
         boxes.append([bbox_x, bbox_y, bbox_w, bbox_h])
         poly = [[bbox_x, bbox_y], [bbox_x, bbox_y + bbox_h], [bbox_x + bbox_w, bbox_y + bbox_h], [bbox_x + bbox_w, bbox_y]]
         np_poly = np.array(poly).reshape((4, 2))
