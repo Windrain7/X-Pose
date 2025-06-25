@@ -841,7 +841,7 @@ class TransformerDecoder(nn.Module):
             query_sine_embed = gen_sineembed_for_position(reference_points_input[:, :, 0, :])  # nq, bs, 256*2
 
             # conditional query
-            raw_query_pos = self.ref_point_head(query_sine_embed)  # nq, bs, 256
+            raw_query_pos = self.ref_point_head(query_sine_embed)  # nq, bs, 256, from MLP
             pos_scale = self.query_scale(output) if self.query_scale is not None else 1
             query_pos = pos_scale * raw_query_pos
             # if os.environ.get("SHILONG_AMP_INFNAN_DEBUG") == '1':
@@ -882,21 +882,22 @@ class TransformerDecoder(nn.Module):
                 outputs_unsig = delta_unsig + reference_before_sigmoid
                 new_reference_points = outputs_unsig.sigmoid()
 
-            # select # ref points as anchors
+            # select # ref points as anchors, object query selection, kpt query selection
             if layer_id == self.num_box_decoder_layers - 1:
                 dn_output = output[:effect_num_dn]
                 dn_new_reference_points = new_reference_points[:effect_num_dn]
                 class_unselected = self.class_embed[layer_id](output.transpose(0, 1), text_dict)[:, effect_num_dn:].transpose(0, 1)
                 class_logits, class_ids = class_unselected.max(-1)
-                _, topk_proposals = torch.topk(class_logits, inter_select_number, dim=0)
+                _, topk_proposals = torch.topk(class_logits, inter_select_number, dim=0)  # 50个分数最高的下标
 
+                # 选50个参考点，object qurey, class id
                 new_reference_points_for_box = torch.gather(new_reference_points[effect_num_dn:], 0, topk_proposals.unsqueeze(-1).repeat(1, 1, 4))
                 new_output_for_box = torch.gather(output[effect_num_dn:], 0, topk_proposals.unsqueeze(-1).repeat(1, 1, self.d_model))  # 50, bs, 256
                 topk_class_ids = class_ids.gather(0, topk_proposals)  # 50, bs
 
-                keypoint_embed = kpt_embed.transpose(0, 1)  # bs, instance, 68, 256 -> instance, bs, 68, 256
+                keypoint_embed = kpt_embed.transpose(0, 1)  # bs, instance, 68, 256 -> instance, bs, 68, 256， 模型根据提示词所生成
                 indices = topk_class_ids[..., None, None].expand(-1, -1, *keypoint_embed.shape[2:])  # 50, bs, 68, 256
-                new_output_for_keypoint = keypoint_embed.gather(0, indices)  # 50, bs, 68, 256
+                new_output_for_keypoint = keypoint_embed.gather(0, indices)  # 50, bs, 68, 256， 根据id选择对应的kpt query
                 new_output_for_keypoint = new_output_for_keypoint.transpose(1, 2)  # 50, 68, bs, 256
                 # new_output_for_keypoint = keypoint_embed[None, :, :, :].repeat(new_output_for_box.shape[0],1,1,1)
 
@@ -1091,7 +1092,7 @@ class DeformableTransformerDecoderLayer(nn.Module):
         tgt_query_pos: Optional[Tensor] = None,  # pos for query. MLP(Sine(pos))
         tgt_query_sine_embed: Optional[Tensor] = None,  # pos for query. Sine(pos)
         tgt_key_padding_mask: Optional[Tensor] = None,
-        tgt_reference_points: Optional[Tensor] = None,  # nq, bs, 4
+        tgt_reference_points: Optional[Tensor] = None,  # nq, bs, 4``
         memory_text: Optional[Tensor] = None,  # bs, num_token, d_model
         text_attention_mask: Optional[Tensor] = None,  # bs, num_token
         # for memory

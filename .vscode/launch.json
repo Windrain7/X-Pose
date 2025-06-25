@@ -1,0 +1,144 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "infer",
+            "type": "python",
+            "request": "launch",
+            "program": "inference_on_a_image.py",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "1"
+            },
+            "console": "integratedTerminal",
+            "args": [
+                "-c",
+                "config_model/UniPose_SwinT.py",
+                "-p",
+                "weights/unipose_swint.pth",
+                "-i",
+                "cats-person.jpg",
+                "-o",
+                "outputs",
+                "-t",
+                "person,cat",
+                "-k",
+                "person,animal"
+            ],
+            "cwd": "/home/jiangtao/workspace/X-Pose",
+            "justMyCode": false
+        },
+        {
+            "name": "peron hand",
+            "type": "python",
+            "request": "launch",
+            "program": "inference_on_a_image.py",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            },
+            "console": "integratedTerminal",
+            "args": [
+                "-c",
+                "config_model/UniPose_SwinT.py",
+                "-p",
+                "weights/unipose_swint.pth",
+                "-i",
+                "Cat-and-Dog-People-1.jpg",
+                "-o",
+                "outputs/",
+                "-t",
+                "person,hand",
+                "-k",
+                "person,hand",
+                "--box_threshold",
+                "0.1",
+                "--iou_threshold",
+                "0.6"
+            ],
+            "cwd": "/home/jiangtao/workspace/X-Pose"
+        },
+        {
+            "name": "hand person",
+            "type": "python",
+            "request": "launch",
+            "program": "inference_on_a_image.py",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            },
+            "console": "integratedTerminal",
+            "args": [
+                "-c",
+                "config_model/UniPose_SwinT.py",
+                "-p",
+                "weights/unipose_swint.pth",
+                "-i",
+                "Cat-and-Dog-People-1.jpg",
+                "-o",
+                "outputs/",
+                "-t",
+                "hand,person",
+                "-k",
+                "hand,person",
+                "--box_threshold",
+                "0.1",
+                "--iou_threshold",
+                "0.6"
+            ],
+            "cwd": "/home/jiangtao/workspace/X-Pose"
+        },
+        {
+            "name": "python: CUDA_VISIBLE_DEVICES=0 python inference_on_a_image.py -c config_model/UniPose_SwinT.py -p weights/unipose_swint.pth -i inputs/car-person/1.1-car-tabel-person.png -o outputs/ -t car -k car --box_threshold 0.1 --iou_threshold 0.6",
+            "type": "python",
+            "request": "launch",
+            "program": "inference_on_a_image.py",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            },
+            "console": "integratedTerminal",
+            "args": [
+                "-c",
+                "config_model/UniPose_SwinT.py",
+                "-p",
+                "weights/unipose_swint.pth",
+                "-i",
+                "inputs/car-person/1.1-car-tabel-person.png",
+                "-o",
+                "outputs/",
+                "-t",
+                "car",
+                "-k",
+                "car",
+                "--box_threshold",
+                "0.1",
+                "--iou_threshold",
+                "0.6"
+            ],
+            "cwd": "/home/jiangtao/workspace/X-Pose"
+        },
+        {
+            "name": "test",
+            "type": "python",
+            "request": "launch",
+            "program": "test.py",
+            "env": {},
+            "console": "integratedTerminal",
+            "args": [
+                "-c",
+                "config_model/UniPose_SwinT.py",
+                "-p",
+                "weights/unipose_swint.pth",
+                "-i",
+                "18.json",
+                "-d",
+                ".",
+                "-t",
+                "person,hand",
+                "-k",
+                "person,hand",
+                "-o",
+                "outputs/18.json",
+                "--draw"
+            ],
+            "cwd": "/home/jiangtao/workspace/X-Pose"
+        }
+    ]
+}

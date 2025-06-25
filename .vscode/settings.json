@@ -1,0 +1,35 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+    },
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/.hg/store/**": true,
+        "data/**": true,
+        "output/**": true,
+        "input/**": true,
+    },
+    "python.analysis.exclude": [
+        "**/node_modules",
+        "**/__pycache__",
+        "**/venv",
+        "**/.venv",
+        ".git",
+        "**/build/**",
+        "**/dist/**",
+        "**/.github/**",
+        "**/data",
+        "**/log",
+        "**/log2",
+        "**/work_dirs*",
+        "**/work_dirs5/",
+        "**/outputs/**",
+        "data/"
+    ],
+}
