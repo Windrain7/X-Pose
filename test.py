@@ -74,6 +74,7 @@ if __name__ == '__main__':
     predictions = []
     annotations = []
 
+    print(f'Processing COCO dataset {args.coco_path} with {len(coco_data["images"])} images...')
     for image_info in tqdm(coco_data['images'], desc='Processing images'):
         image_path = os.path.join(args.img_root, image_info['file_name'])
         image_pil, image = load_image(image_path)

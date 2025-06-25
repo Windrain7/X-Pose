@@ -50,17 +50,17 @@ if 0:
 # all in one
 if 1:
     infos = [
-        dict(dataset='COCO', img_root='', filename='person_keypoints_val2017_hasgt2.json'),
-        dict(dataset='AP-10K', img_root='', filename='ap10k-val-split1_animal.json'),
-        dict(dataset='HumanArt', img_root='', filename='validation_humanart.json'),
-        dict(dataset='300W', img_root='', filename='face_landmarks_300w_test.json'),
-        dict(dataset='OneHand10K', img_root='', filename='onehand10k_test.json'),
-        dict(dataset='COCO-WholeBody-Hand', img_root='val2017', filename='coco_wholebody_val_v1.0_hand_vis0.6.json'),
+        # dict(dataset='COCO', img_root='', filename='person_keypoints_val2017_hasgt2.json'),
+        # dict(dataset='AP-10K', img_root='', filename='ap10k-val-split1_animal.json'),
+        # dict(dataset='HumanArt', img_root='', filename='validation_humanart.json'),
+        # dict(dataset='300W', img_root='', filename='face_landmarks_300w_test.json'),
+        # dict(dataset='OneHand10K', img_root='', filename='onehand10k_test.json'),
+        # dict(dataset='COCO-WholeBody-Hand', img_root='val2017', filename='coco_wholebody_val_v1.0_hand_vis0.6.json'),
         dict(dataset='Keypoint-5', img_root='', filename='table_test.json'),
         dict(dataset='Keypoint-5', img_root='', filename='bed_test.json'),
         dict(dataset='Keypoint-5', img_root='', filename='chair_test.json'),
         dict(dataset='Keypoint-5', img_root='', filename='sofa_test.json'),
-        dict(dataset='CarFusion', img_root='', filename='car_keypoints_test.json'),
+        # dict(dataset='CarFusion', img_root='', filename='car_keypoints_test.json'),
     ]
     directories = ['data/UniKPT'] * len(infos)
     # fmt: off
@@ -76,6 +76,8 @@ if 1:
         input_path = osp.join(directory, dataset, filename)
         data_root = osp.join(directory, dataset, img_root)
         output_path = osp.join('outputs', osp.basename(directory), f'{dataset}_allinone.json')
+        if dataset == 'Keypoint-5':
+            output_path = output_path.replace(dataset, f'{dataset}_{filename.split("_")[0]}')
         os.makedirs(osp.dirname(output_path), exist_ok=True)
         gpu_id = get_gpu_with_least_memory()
         cmd = (
