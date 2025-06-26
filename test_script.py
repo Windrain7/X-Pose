@@ -1,6 +1,7 @@
 import json
 import os
 import os.path as osp
+import random
 
 import gpustat
 
@@ -50,17 +51,17 @@ if 0:
 # all in one
 if 1:
     infos = [
-        # dict(dataset='COCO', img_root='', filename='person_keypoints_val2017_hasgt2.json'),
-        # dict(dataset='AP-10K', img_root='', filename='ap10k-val-split1_animal.json'),
-        # dict(dataset='HumanArt', img_root='', filename='validation_humanart.json'),
-        # dict(dataset='300W', img_root='', filename='face_landmarks_300w_test.json'),
-        # dict(dataset='OneHand10K', img_root='', filename='onehand10k_test.json'),
-        # dict(dataset='COCO-WholeBody-Hand', img_root='val2017', filename='coco_wholebody_val_v1.0_hand_vis0.6.json'),
-        dict(dataset='Keypoint-5', img_root='', filename='table_test.json'),
-        dict(dataset='Keypoint-5', img_root='', filename='bed_test.json'),
-        dict(dataset='Keypoint-5', img_root='', filename='chair_test.json'),
-        dict(dataset='Keypoint-5', img_root='', filename='sofa_test.json'),
-        # dict(dataset='CarFusion', img_root='', filename='car_keypoints_test.json'),
+        dict(dataset='COCO', img_root='', filename='person_keypoints_val2017_hasgt2.json', cat='person'),
+        dict(dataset='AP-10K', img_root='', filename='ap10k-val-split1_animal.json', cat='animal'),
+        dict(dataset='HumanArt', img_root='', filename='validation_humanart.json', cat='person'),
+        dict(dataset='300W', img_root='', filename='face_landmarks_300w_test.json', cat='face'),
+        dict(dataset='OneHand10K', img_root='', filename='onehand10k_test.json', cat='hand'),
+        dict(dataset='COCO-WholeBody-Hand', img_root='val2017', filename='coco_wholebody_val_v1.0_hand_vis0.6.json', cat='hand'),
+        dict(dataset='Keypoint-5', img_root='', filename='table_test.json', cat='table'),
+        dict(dataset='Keypoint-5', img_root='', filename='bed_test.json', cat='bed'),
+        dict(dataset='Keypoint-5', img_root='', filename='chair_test.json', cat='chair'),
+        dict(dataset='Keypoint-5', img_root='', filename='sofa_test.json', cat='sofa'),
+        dict(dataset='CarFusion', img_root='', filename='car_keypoints_test.json', cat='car'),
     ]
     directories = ['data/UniKPT'] * len(infos)
     # fmt: off
@@ -68,14 +69,20 @@ if 1:
     # animal_cats = ['animal']
     cats = ['person', 'face', 'hand'] +  animal_cats + ['table', 'bed', 'chair', 'sofa', 'car', 'face']
     kpts = ['person', 'face', 'hand'] + ['AP10K'] * len(animal_cats) + ['table', 'bed', 'chair', 'sofa', 'car', 'face']
+    cat2id = {cat: i for i, cat in enumerate(cats)}
+    id2cat = {i: cat for i, cat in enumerate(cats)}
+    id2cat.update({i + 3: 'animal' for i, _ in enumerate(animal_cats)})
+    ext = 'allinone'
 
+    cats = ['person', 'face']
+    kpts = ['person', 'face']
     for directory, info in zip(directories, infos):
         dataset = info['dataset']
         filename = info['filename']
-        img_root = info.get('img_root', '')
+        img_root = info['img_root']
         input_path = osp.join(directory, dataset, filename)
         data_root = osp.join(directory, dataset, img_root)
-        output_path = osp.join('outputs', osp.basename(directory), f'{dataset}_allinone.json')
+        output_path = osp.join('outputs', osp.basename(directory), f'{dataset}_{ext}.json')
         if dataset == 'Keypoint-5':
             output_path = output_path.replace(dataset, f'{dataset}_{filename.split("_")[0]}')
         os.makedirs(osp.dirname(output_path), exist_ok=True)
@@ -83,8 +90,8 @@ if 1:
         cmd = (
             f'CUDA_VISIBLE_DEVICES={gpu_id} python test.py -c {config} -p {weights} -i {input_path} -d {data_root} -t "{",".join(cats)}" -k "{",".join(kpts)}" -o {output_path}'
         )
-        print(cmd, file=open('test.sh', 'a'), end='\n\n')
-        # os.system(cmd)
+        # print(cmd, file=open('test.sh', 'a'), end='\n\n')
+        os.system(cmd)
         # content = json.load(open(output_path))
         # for i, ann in enumerate(content['annotations']):
         #     if 3 + len(animal_cats) > ann['category_id'] >= 3:
