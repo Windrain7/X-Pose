@@ -51,17 +51,17 @@ if 0:
 # all in one
 if 1:
     infos = [
-        dict(dataset='COCO', img_root='', filename='person_keypoints_val2017_hasgt2.json', cat='person'),
-        dict(dataset='AP-10K', img_root='', filename='ap10k-val-split1_animal.json', cat='animal'),
-        dict(dataset='HumanArt', img_root='', filename='validation_humanart.json', cat='person'),
-        dict(dataset='300W', img_root='', filename='face_landmarks_300w_test.json', cat='face'),
-        dict(dataset='OneHand10K', img_root='', filename='onehand10k_test.json', cat='hand'),
-        dict(dataset='COCO-WholeBody-Hand', img_root='val2017', filename='coco_wholebody_val_v1.0_hand_vis0.6.json', cat='hand'),
-        dict(dataset='Keypoint-5', img_root='', filename='table_test.json', cat='table'),
-        dict(dataset='Keypoint-5', img_root='', filename='bed_test.json', cat='bed'),
-        dict(dataset='Keypoint-5', img_root='', filename='chair_test.json', cat='chair'),
-        dict(dataset='Keypoint-5', img_root='', filename='sofa_test.json', cat='sofa'),
-        dict(dataset='CarFusion', img_root='', filename='car_keypoints_test.json', cat='car'),
+        # dict(dataset='COCO', img_root='', filename='person_keypoints_val2017_hasgt2.json', cat='person'),
+        # dict(dataset='AP-10K', img_root='', filename='ap10k-val-split1_animal.json', cat='animal'),
+        dict(dataset='HumanArt', img_root='..', filename='validation_humanart.json', cat='person'),
+        # dict(dataset='300W', img_root='', filename='face_landmarks_300w_test.json', cat='face'),
+        # dict(dataset='OneHand10K', img_root='', filename='onehand10k_test.json', cat='hand'),
+        # dict(dataset='COCO-WholeBody-Hand', img_root='val2017', filename='coco_wholebody_val_v1.0_hand_vis0.6.json', cat='hand'),
+        # dict(dataset='Keypoint-5', img_root='', filename='table_test.json', cat='table'),
+        # dict(dataset='Keypoint-5', img_root='', filename='bed_test.json', cat='bed'),
+        # dict(dataset='Keypoint-5', img_root='', filename='chair_test.json', cat='chair'),
+        # dict(dataset='Keypoint-5', img_root='', filename='sofa_test.json', cat='sofa'),
+        # dict(dataset='CarFusion', img_root='', filename='car_keypoints_test.json', cat='car'),
     ]
     directories = ['data/UniKPT'] * len(infos)
     # fmt: off
@@ -74,8 +74,6 @@ if 1:
     id2cat.update({i + 3: 'animal' for i, _ in enumerate(animal_cats)})
     ext = 'allinone'
 
-    cats = ['person', 'face']
-    kpts = ['person', 'face']
     for directory, info in zip(directories, infos):
         dataset = info['dataset']
         filename = info['filename']
@@ -85,13 +83,14 @@ if 1:
         output_path = osp.join('outputs', osp.basename(directory), f'{dataset}_{ext}.json')
         if dataset == 'Keypoint-5':
             output_path = output_path.replace(dataset, f'{dataset}_{filename.split("_")[0]}')
+
         os.makedirs(osp.dirname(output_path), exist_ok=True)
         gpu_id = get_gpu_with_least_memory()
         cmd = (
             f'CUDA_VISIBLE_DEVICES={gpu_id} python test.py -c {config} -p {weights} -i {input_path} -d {data_root} -t "{",".join(cats)}" -k "{",".join(kpts)}" -o {output_path}'
         )
-        # print(cmd, file=open('test.sh', 'a'), end='\n\n')
-        os.system(cmd)
+        print(cmd, file=open('test.sh', 'a'), end='\n\n')
+        # os.system(cmd)
         # content = json.load(open(output_path))
         # for i, ann in enumerate(content['annotations']):
         #     if 3 + len(animal_cats) > ann['category_id'] >= 3:
@@ -105,6 +104,46 @@ if 1:
         #         cat['id'] -= len(animal_cats) - 1
         # with open(output_path.replace('.json', '_recatid.json'), 'w') as f:
         #     json.dump(content, f, indent=4)
+
+if 0:
+    infos = [
+        dict(dataset='COCO', img_root='', filename='person_keypoints_val2017_hasgt2.json', cat='person'),
+        dict(dataset='AP-10K', img_root='', filename='ap10k-val-split1_animal.json', cat='animal'),
+        dict(dataset='HumanArt', img_root='..', filename='validation_humanart.json', cat='person'),
+        dict(dataset='300W', img_root='', filename='face_landmarks_300w_test.json', cat='face'),
+        dict(dataset='OneHand10K', img_root='', filename='onehand10k_test.json', cat='hand'),
+        dict(dataset='COCO-WholeBody-Hand', img_root='val2017', filename='coco_wholebody_val_v1.0_hand_vis0.6.json', cat='hand'),
+        dict(dataset='Keypoint-5', img_root='', filename='table_test.json', cat='table'),
+        dict(dataset='Keypoint-5', img_root='', filename='bed_test.json', cat='bed'),
+        dict(dataset='Keypoint-5', img_root='', filename='chair_test.json', cat='chair'),
+        dict(dataset='Keypoint-5', img_root='', filename='sofa_test.json', cat='sofa'),
+        dict(dataset='CarFusion', img_root='', filename='car_keypoints_test.json', cat='car'),
+    ]
+    directories = ['data/UniKPT'] * len(infos)
+    # fmt: off
+    others = ['person', 'face', 'hand', 'table', 'bed', 'chair', 'sofa', 'car']
+    animal_cats = ['antelope', 'argali sheep', 'bison', 'buffalo', 'cow', 'sheep', 'arctic fox', 'dog', 'fox', 'wolf', 'beaver', 'alouatta', 'monkey', 'noisy night monkey', 'spider monkey', 'uakari', 'deer', 'moose', 'hamster', 'elephant', 'horse', 'zebra', 'bobcat', 'cat', 'cheetah', 'jaguar', 'king cheetah', 'leopard', 'lion', 'panther', 'snow leopard', 'tiger', 'giraffe', 'hippo', 'chimpanzee', 'gorilla', 'orangutan', 'rabbit', 'skunk', 'mouse', 'rat', 'otter', 'weasel', 'raccoon', 'rhino', 'marmot', 'squirrel', 'pig', 'mole', 'black bear', 'brown bear', 'panda', 'polar bear', 'bat']
+    animal_kpts = ['AP10K'] * len(animal_cats)
+    all_cats = set(others + animal_cats)
+    cats = others + animal_cats
+    kpts = others + animal_kpts
+    ext = 'allinonev2'
+    for directory, info in zip(directories, infos):
+        dataset = info['dataset']
+        filename = info['filename']
+        img_root = info['img_root']
+        input_path = osp.join(directory, dataset, filename)
+        data_root = osp.join(directory, dataset, img_root)
+        output_path = osp.join('outputs', osp.basename(directory), f'{dataset}_{ext}.json')
+        if dataset == 'Keypoint-5':
+            output_path = output_path.replace(dataset, f'{dataset}_{filename.split("_")[0]}')
+        os.makedirs(osp.dirname(output_path), exist_ok=True)
+
+        gpu_id = get_gpu_with_least_memory()
+        cmd = (
+            f'CUDA_VISIBLE_DEVICES={gpu_id} python test.py -c {config} -p {weights} -i {input_path} -d {data_root} -t "{",".join(cats)}" -k "{",".join(kpts)}" -o {output_path}'
+        )
+        print(cmd, file=open('test.sh', 'a'), end='\n\n')
 
 # one by one
 if 0:

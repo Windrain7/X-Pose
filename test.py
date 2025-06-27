@@ -88,7 +88,13 @@ if __name__ == '__main__':
 
         if args.draw:
             size = image_pil.size
-            pred_dict = {'boxes': boxes_filt, 'keypoints': keypoints_filt, 'scores': scores_filt, 'label_ids': label_ids_filt,'size': [size[1], size[0]]}
+            pred_dict = {
+                'boxes': boxes_filt,
+                'keypoints': keypoints_filt,
+                'scores': scores_filt,
+                'label_ids': label_ids_filt,
+                'size': [size[1], size[0]],
+            }
             directory = os.path.splitext(outfp)[0]
             os.makedirs(directory, exist_ok=True)
             filename = image_info['file_name'].split('/')[-1]
@@ -127,7 +133,8 @@ if __name__ == '__main__':
             annotations.append(annotation)
 
     # Save results in COCO format
-    results = {'images': coco_data['images'], 'annotations': annotations, 'categories': coco_data['categories']}
+    results = {'images': coco_data['images'], 'annotations': annotations, 'gt_categories': coco_data['categories']}
+    results['categories'] = [{cat_id: cat} for cat_id, cat in enumerate(args.instance_text_prompt.split(','))]
 
     os.makedirs(os.path.dirname(outfp), exist_ok=True)
     with open(outfp, 'w') as f:
@@ -139,4 +146,4 @@ if __name__ == '__main__':
     # 将predictions保存为pickle文件
     with open(pklname, 'wb') as f:
         pickle.dump(predictions, f)
-        print(f'Saved predictions to {pklname}_predictions.pkl')
+        print(f'Saved predictions to {pklname}')
