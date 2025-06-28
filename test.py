@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
     # Save results in COCO format
     results = {'images': coco_data['images'], 'annotations': annotations, 'gt_categories': coco_data['categories']}
-    results['categories'] = [{cat_id: cat} for cat_id, cat in enumerate(args.instance_text_prompt.split(','))]
+    results['categories'] = [{'id': cat_id, 'name': cat} for cat_id, cat in enumerate(args.instance_text_prompt.split(','))]
 
     os.makedirs(os.path.dirname(outfp), exist_ok=True)
     with open(outfp, 'w') as f:

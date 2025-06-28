@@ -72,7 +72,7 @@ if 1:
     cat2id = {cat: i for i, cat in enumerate(cats)}
     id2cat = {i: cat for i, cat in enumerate(cats)}
     id2cat.update({i + 3: 'animal' for i, _ in enumerate(animal_cats)})
-    ext = 'allinone'
+    ext = 'allinonev1'
 
     for directory, info in zip(directories, infos):
         dataset = info['dataset']
@@ -89,7 +89,7 @@ if 1:
         cmd = (
             f'CUDA_VISIBLE_DEVICES={gpu_id} python test.py -c {config} -p {weights} -i {input_path} -d {data_root} -t "{",".join(cats)}" -k "{",".join(kpts)}" -o {output_path}'
         )
-        print(cmd, file=open('test.sh', 'a'), end='\n\n')
+        print(cmd, end='\n\n')
         # os.system(cmd)
         # content = json.load(open(output_path))
         # for i, ann in enumerate(content['annotations']):
