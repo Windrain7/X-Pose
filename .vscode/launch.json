@@ -16,13 +16,13 @@
                 "-p",
                 "weights/unipose_swint.pth",
                 "-i",
-                "cats-person.jpg",
+                "inputs/Cat-and-Dog-People-1.jpg",
                 "-o",
                 "outputs",
                 "-t",
                 "person,cat",
                 "-k",
-                "person,animal"
+                "person,AP10K"
             ],
             "cwd": "/home/jiangtao/workspace/X-Pose",
             "justMyCode": false

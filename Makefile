@@ -18,11 +18,21 @@ infer:
 	CUDA_VISIBLE_DEVICES=${dev} python inference_on_a_image.py \
 		-c config_model/UniPose_SwinT.py \
 		-p weights/unipose_swint.pth \
-		-i inputs/car-person \
-		-o outputs/car-person \
-		-t 'car' \
-		-k 'car' \
-		--box_threshold 0.3 \
+		-i inputs/Cat-and-Dog-People-1.jpg \
+		-o outputs \
+		-t 'person,cat,dog,face,hand' \
+		-k 'person,AP10K,AP10K,face,hand' \
+		--box_threshold 0.05 \
+		--iou_threshold 0.3
+		
+	CUDA_VISIBLE_DEVICES=${dev} python inference_on_a_image.py \
+		-c config_model/UniPose_SwinT.py \
+		-p weights/unipose_swint.pth \
+		-i inputs/Cat-and-Dog-People-1.jpg \
+		-o outputs \
+		-t 'cat,dog' \
+		-k 'AP10K,AP10K' \
+		--box_threshold 0.0 \
 		--iou_threshold 0.3
 
 	# CUDA_VISIBLE_DEVICES=${dev} python inference_on_a_image.py \
@@ -61,11 +71,21 @@ test:
 	CUDA_VISIBLE_DEVICES=${dev} python test.py \
 		-c config_model/UniPose_SwinT.py \
 		-p weights/unipose_swint.pth \
-		-i data/k5-test/copypaste_k4v1.json \
-		-d data/k5-test/imgs \
-		-t table,bed,chair,sofa \
-		-k table,bed,chair,sofa \
-		-o outputs/k5-test/copypaste_k4v1_{table_bed_chair_sofa}.json \
+		-i input.json \
+		-d inputs/visualization \
+		-t person,cat,dog,face,hand \
+		-k person,AP10K,AP10K,face,hand \
+		-o outputs/Cat-and-Dog-People-1_{person,cat,dog,face,hand}.json \
+		--iou_threshold 0.3 \
+	
+	# CUDA_VISIBLE_DEVICES=${dev} python test.py \
+	# 	-c config_model/UniPose_SwinT.py \
+	# 	-p weights/unipose_swint.pth \
+	# 	-i data/k5-test/copypaste_k4v1.json \
+	# 	-d data/k5-test/imgs \
+	# 	-t table,bed,chair,sofa \
+	# 	-k table,bed,chair,sofa \
+	# 	-o outputs/k5-test/copypaste_k4v1_{table_bed_chair_sofa}.json \
 	
 	# CUDA_VISIBLE_DEVICES=${dev} python test.py \
 	# 	-c config_model/UniPose_SwinT.py \
